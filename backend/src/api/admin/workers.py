@@ -59,7 +59,7 @@ def update_worker_disponibility(
         raise HTTPException(status_code=404, detail="Worker not found")
     
     setattr(worker, "disponibility", worker_data.disponibility)
-    setattr(worker, "assigned_project_id", None if worker_data.disponibility else worker.assigned_project_id)
+    setattr(worker, "assigned_project_id", None if worker_data.disponibility else worker_data.assigned_project_id)
     
     db.commit()
     db.refresh(worker)

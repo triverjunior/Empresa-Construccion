@@ -25,6 +25,11 @@ class ProjectCreate(BaseModel):
     description: str
     location: str
 
+class ProjectUpdate(BaseModel):
+    title: str
+    description: str
+    location: str
+
 class ReportCreate(BaseModel):
     user_id: int
     project_id: int
