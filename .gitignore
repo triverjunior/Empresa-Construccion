@@ -1,0 +1,7 @@
+# Ignorar archivos de entorno
+.env
+node_modules
+.vscode
+
+# Ignorar Git
+.git
