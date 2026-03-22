@@ -28,16 +28,17 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 
     try:
         payload = jwt.decode(token, secret_key, algorithms=[algorithm])
+        user_id = payload.get("id")
         username = payload.get("sub")
         role = payload.get("role")
 
-        if username is None or role is None:
+        if username is None or role is None or user_id is None:
             raise credential_exception
     
     except JWTError:
         raise credential_exception
     
-    return {"username": username, "role": role}
+    return {"id": user_id, "username": username, "role": role}
 
 def require_role(required_role: str):
     
@@ -88,6 +89,7 @@ def login (form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depen
         raise HTTPException(status_code=400, detail="Incorrect username or password")
     
     token_data = {
+        "id": user_sel.id,
         "sub": user_sel.username,
         "role": user_sel.role
     }
