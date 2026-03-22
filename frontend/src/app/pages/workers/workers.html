@@ -1,1 +1,101 @@
-<p>workers works!</p>
+<div class="workers-page">
+
+    <div class="page-header">
+        <button class="btn btn--ghost btn--sm" (click)="goBack()">← Back</button>
+    </div>
+
+    <section class="create-section">
+        <h2 class="section-title">New worker</h2>
+        <form class="create-form" (ngSubmit)="onCreateWorker($event)">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="new-username" class="form-label">Name</label>
+                    <input id="new-username" type="text" class="form-input" [(ngModel)]="newUsername"
+                        name="newUsername" placeholder="Username" required />
+                </div>
+                <div class="form-group">
+                    <label for="new-email" class="form-label">Email</label>
+                    <input id="new-email" type="email" class="form-input" [(ngModel)]="newEmail"
+                        name="newEmail" placeholder="email@example.com" required />
+                </div>
+                <div class="form-group">
+                    <label for="new-password" class="form-label">Password</label>
+                    <input id="new-password" type="password" class="form-input" [(ngModel)]="newPassword"
+                        name="newPassword" placeholder="Password" required />
+                </div>
+            </div>
+
+            @if (createError) {
+                <p class="alert alert--error">{{ createError }}</p>
+            }
+            @if (createSuccess) {
+                <p class="alert alert--success">{{ createSuccess }}</p>
+            }
+
+            <button id="btn-create-worker" type="submit" class="btn btn--primary" [disabled]="!newUsername || !newEmail || !newPassword">Create worker</button>
+        </form>
+    </section>
+
+    <section class="list-section">
+        <h2 class="section-title">Workers</h2>
+
+        @if (isLoading()) {
+            <p class="muted">Loading...</p>
+        }
+
+        @if (!isLoading() && workers().length === 0) {
+            <p class="muted">No workers found.</p>
+        }
+
+        @if (!isLoading() && workers().length > 0) {
+            <table class="workers-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (worker of workers(); track worker.id) {
+                        <tr>
+                            @if (editingId() === worker.id) {
+                                <td><input type="text" class="form-input form-input--inline" [(ngModel)]="editUsername" required /></td>
+                                <td><input type="email" class="form-input form-input--inline" [(ngModel)]="editEmail" required /></td>
+                                <td>
+                                    <span class="badge" [class.badge--assigned]="worker.assigned_project_id">
+                                        {{ worker.assigned_project_id ? 'Assigned' : 'Available' }}
+                                    </span>
+                                </td>
+                                <td class="actions">
+                                    <button class="btn btn--sm btn--primary" (click)="saveEdit(worker)" [disabled]="!editUsername || !editEmail">Save</button>
+                                    <button class="btn btn--sm btn--ghost" (click)="cancelEdit()">Cancel</button>
+                                    @if (editError) {
+                                        <span class="alert alert--error">{{ editError }}</span>
+                                    }
+                                </td>
+                            } @else {
+                                <td>{{ worker.username }}</td>
+                                <td>{{ worker.email }}</td>
+                                <td>
+                                    <span class="badge" [class.badge--assigned]="worker.assigned_project_id">
+                                        {{ worker.assigned_project_id ? 'Assigned' : 'Available' }}
+                                    </span>
+                                </td>
+                                <td class="actions">
+                                    <button class="btn btn--sm btn--ghost" (click)="startEdit(worker)">Edit</button>
+                                    @if (worker.assigned_project_id) {
+                                        <button class="btn btn--sm btn--warning" (click)="unassign(worker)">Unassign</button>
+                                    }
+                                    <button class="btn btn--sm btn--danger" (click)="deleteWorker(worker)">Delete</button>
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+
+</div>

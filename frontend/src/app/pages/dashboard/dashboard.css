@@ -1,0 +1,32 @@
+.dashboard-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-lg);
+    background-color: var(--color-background);
+}
+
+.dashboard-title {
+    font-size: 2rem;
+    font-weight: 700;
+    font-family: var(--font-primary);
+    color: var(--color-text);
+}
+
+.dashboard-nav {
+    display: flex;
+    gap: var(--spacing-md);
+}
+
+.nav-btn {
+    padding: 12px 32px;
+    background: var(--color-primary);
+    color: #fff;
+    border-radius: var(--radius-md);
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: var(--font-primary);
+    cursor: pointer;
+}

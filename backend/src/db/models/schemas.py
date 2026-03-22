@@ -31,7 +31,6 @@ class ProjectUpdate(BaseModel):
     location: str
 
 class ReportCreate(BaseModel):
-    user_id: int
     project_id: int
     type: str
     title: str
