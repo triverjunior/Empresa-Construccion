@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from ...db.models import user, schemas
 from ...db.database import get_db
 from .. import auth
+from ...emails.sender import send_email
 
 router = APIRouter()
 
@@ -63,6 +64,11 @@ def update_worker_disponibility(
     
     db.commit()
     db.refresh(worker)
+    send_email(
+        to_email=worker.email,
+        subject="Disponibility Updated",
+        body=f"Hi {worker.username}, your disponibility has been updated, you have a new project assigned."
+    )
     return {"message": "Worker disponibility updated successfully"}
 
 @router.delete("/api/workers/{worker_id}")
