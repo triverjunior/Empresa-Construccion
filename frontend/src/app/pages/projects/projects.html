@@ -1,1 +1,158 @@
-<p>projects works!</p>
+<div class="projects-page">
+
+    <div class="page-header">
+        <button class="btn btn--ghost btn--sm" (click)="goBack()">← Back</button>
+    </div>
+
+    <section class="create-section">
+        <h2 class="section-title">New project</h2>
+        <form class="create-form" (ngSubmit)="onCreateProject($event)">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="new-title" class="form-label">Title</label>
+                    <input id="new-title" type="text" class="form-input" [(ngModel)]="newTitle"
+                        name="newTitle" placeholder="Project title" required />
+                </div>
+                <div class="form-group">
+                    <label for="new-location" class="form-label">Location</label>
+                    <input id="new-location" type="text" class="form-input" [(ngModel)]="newLocation"
+                        name="newLocation" placeholder="City, address..." required />
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="new-description" class="form-label">Description</label>
+                <textarea id="new-description" class="form-input form-textarea" [(ngModel)]="newDescription"
+                    name="newDescription" placeholder="Project description..." rows="3" required></textarea>
+            </div>
+
+            @if (createError) {
+                <p class="alert alert--error">{{ createError }}</p>
+            }
+            @if (createSuccess) {
+                <p class="alert alert--success">{{ createSuccess }}</p>
+            }
+
+            <button id="btn-create-project" type="submit" class="btn btn--primary"
+                [disabled]="!newTitle || !newDescription || !newLocation">
+                Create project
+            </button>
+        </form>
+    </section>
+
+    <section class="list-section">
+        <h2 class="section-title">Projects</h2>
+
+        @if (isLoading()) {
+            <p class="muted">Loading...</p>
+        }
+
+        @if (!isLoading() && projects().length === 0) {
+            <p class="muted">No projects found.</p>
+        }
+
+        @if (!isLoading() && projects().length > 0) {
+            <table class="projects-table">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Description</th>
+                        <th>Location</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (project of projects(); track project.id) {
+                        <tr>
+                            @if (editingId() === project.id) {
+                                <td><input type="text" class="form-input form-input--inline" [(ngModel)]="editTitle" required /></td>
+                                <td><input type="text" class="form-input form-input--inline" [(ngModel)]="editDescription" required /></td>
+                                <td><input type="text" class="form-input form-input--inline" [(ngModel)]="editLocation" required /></td>
+                                <td class="actions">
+                                    <button class="btn btn--sm btn--primary" (click)="saveEdit(project)"
+                                        [disabled]="!editTitle || !editDescription || !editLocation">Save</button>
+                                    <button class="btn btn--sm btn--ghost" (click)="cancelEdit()">Cancel</button>
+                                    @if (editError) {
+                                        <span class="alert alert--error">{{ editError }}</span>
+                                    }
+                                </td>
+                            } @else if (assigningProjectId() === project.id) {
+                                <td colspan="3">
+                                    <div class="assign-row">
+                                        <span class="assign-label">Assign worker to <strong>{{ project.title }}</strong>:</span>
+                                        <select class="form-input form-input--inline" [(ngModel)]="selectedWorkerId">
+                                            <option [ngValue]="null" disabled>Select a worker</option>
+                                            @for (worker of availableWorkers(); track worker.id) {
+                                                <option [ngValue]="worker.id">{{ worker.username }}</option>
+                                            }
+                                        </select>
+                                        @if (availableWorkers().length === 0) {
+                                            <span class="muted">No available workers.</span>
+                                        }
+                                    </div>
+                                    @if (assignError) {
+                                        <span class="alert alert--error">{{ assignError }}</span>
+                                    }
+                                </td>
+                                <td class="actions">
+                                    <button class="btn btn--sm btn--primary" (click)="confirmAssign()"
+                                        [disabled]="!selectedWorkerId">Confirm</button>
+                                    <button class="btn btn--sm btn--ghost" (click)="cancelAssign()">Cancel</button>
+                                </td>
+                            } @else {
+                                <td>{{ project.title }}</td>
+                                <td class="cell--description">{{ project.description }}</td>
+                                <td>{{ project.location }}</td>
+                                <td class="actions">
+                                    <button class="btn btn--sm btn--ghost" (click)="startEdit(project)">Edit</button>
+                                    <button class="btn btn--sm btn--warning" (click)="startAssign(project.id)">Assign</button>
+                                    <button class="btn btn--sm btn--info" (click)="toggleReports(project.id)">
+                                        {{ viewingReportsId() === project.id ? 'Hide reports' : 'Reports' }}
+                                    </button>
+                                    <button class="btn btn--sm btn--danger" (click)="deleteProject(project)">Delete</button>
+                                </td>
+                            }
+                        </tr>
+                        @if (viewingReportsId() === project.id) {
+                            <tr class="reports-row">
+                                <td colspan="4">
+                                    <div class="reports-panel">
+                                        <p class="reports-panel__title">Reports for <strong>{{ project.title }}</strong></p>
+                                        @if (reportsLoading()) {
+                                            <p class="muted">Loading...</p>
+                                        } @else if (reportsForProject(project.id).length === 0) {
+                                            <p class="muted">No reports yet.</p>
+                                        } @else {
+                                            <table class="reports-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Type</th>
+                                                        <th>Title</th>
+                                                        <th>Description</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @for (report of reportsForProject(project.id); track report.id) {
+                                                        <tr>
+                                                            <td>
+                                                                <span class="badge" [class.badge--problem]="report.type === 'problem'">
+                                                                    {{ report.type }}
+                                                                </span>
+                                                            </td>
+                                                            <td>{{ report.title }}</td>
+                                                            <td>{{ report.description }}</td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+
+</div>

@@ -51,4 +51,28 @@ export class Globals {
     public deleteWorker(id: number): Observable<any> {
         return this.http.delete(`${this.apiUrl}/workers/${id}`, { headers: this.getAuthHeaders() });
     }
+
+    public getProjects(): Observable<any> {
+        return this.http.get(`${this.apiUrl}/projects`, { headers: this.getAuthHeaders() });
+    }
+
+    public createProject(data: { title: string, description: string, location: string }): Observable<any> {
+        return this.http.post(`${this.apiUrl}/projects`, data, { headers: this.getAuthHeaders() });
+    }
+
+    public updateProject(id: number, data: { title: string, description: string, location: string }): Observable<any> {
+        return this.http.put(`${this.apiUrl}/projects/${id}`, data, { headers: this.getAuthHeaders() });
+    }
+
+    public deleteProject(id: number): Observable<any> {
+        return this.http.delete(`${this.apiUrl}/projects/${id}`, { headers: this.getAuthHeaders() });
+    }
+
+    public getReports(): Observable<any> {
+        return this.http.get(`${this.apiUrl}/reports`, { headers: this.getAuthHeaders() });
+    }
+
+    public assignWorkerToProject(workerId: number, projectId: number): Observable<any> {
+        return this.http.put(`${this.apiUrl}/workers/${workerId}/disponibility`, { disponibility: false, assigned_project_id: projectId }, { headers: this.getAuthHeaders() });
+    }
 }

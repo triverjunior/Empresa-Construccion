@@ -81,3 +81,30 @@ table {
   --transition-fast: 0.2s ease;
   --transition-normal: 0.3s ease;
 }
+
+.topnav {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 10px var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.topnav__logout {
+  padding: 6px 16px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font-primary);
+  cursor: pointer;
+}
+
+.topnav__logout:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
