@@ -6,7 +6,7 @@ from .. import auth
 
 router = APIRouter()
 
-@router.post("/reports")
+@router.post("/api/reports")
 def create_report(
     report_data: schemas.ReportCreate, 
     db: Session = Depends(get_db), 

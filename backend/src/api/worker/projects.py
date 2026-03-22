@@ -6,7 +6,7 @@ from .. import auth
 
 router = APIRouter()
 
-@router.get("/active-project")
+@router.get("/api/active-project")
 def get_my_active_project(db: Session = Depends(get_db), current_user: dict = Depends(auth.require_role("worker"))):
     user_sel = db.query(user.User).filter(user.User.id == current_user["id"]).first()
     

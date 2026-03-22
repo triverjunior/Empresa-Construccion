@@ -6,7 +6,7 @@ from .. import auth
 
 router = APIRouter()
 
-@router.get("/projects")
+@router.get("/api/projects")
 def get_projects(db: Session = Depends(get_db), current_user: dict = Depends(auth.require_role("admin"))):
     projects = db.query(project.Project).all()
     return {
@@ -21,7 +21,7 @@ def get_projects(db: Session = Depends(get_db), current_user: dict = Depends(aut
         ]
     }
 
-@router.post("/projects")
+@router.post("/api/projects")
 def create_project(project_data: schemas.ProjectCreate, db: Session = Depends(get_db), current_user: dict = Depends(auth.require_role("admin"))):
     if db.query(project.Project).filter(project.Project.title == project_data.title).first():
         raise HTTPException(status_code=400, detail="Project title already exists")
@@ -32,7 +32,7 @@ def create_project(project_data: schemas.ProjectCreate, db: Session = Depends(ge
     db.refresh(new_project)
     return {"message": "Project created successfully", "project_id": new_project.id}
 
-@router.put("/projects/{project_id}")
+@router.put("/api/projects/{project_id}")
 def update_project(project_id: int, project_data: schemas.ProjectUpdate, db: Session = Depends(get_db), current_user: dict = Depends(auth.require_role("admin"))):
     project_to_update = db.query(project.Project).filter(project.Project.id == project_id).first()
     if not project_to_update:
@@ -53,7 +53,7 @@ def update_project(project_id: int, project_data: schemas.ProjectUpdate, db: Ses
     db.refresh(project_to_update)
     return {"message": "Project updated successfully"}
 
-@router.delete("/projects/{project_id}")
+@router.delete("/api/projects/{project_id}")
 def delete_project(project_id: int, db: Session = Depends(get_db), current_user: dict = Depends(auth.require_role("admin"))):
     project_to_delete = db.query(project.Project).filter(project.Project.id == project_id).first()
     if not project_to_delete:

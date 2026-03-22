@@ -6,7 +6,7 @@ from .. import auth
 
 router = APIRouter()
 
-@router.get("/workers")
+@router.get("/api/workers")
 def get_workers(db: Session = Depends(get_db), current_user: dict = Depends(auth.require_role("admin"))):
     workers = db.query(user.User).filter(user.User.role == "worker").all()
     return {
@@ -22,7 +22,7 @@ def get_workers(db: Session = Depends(get_db), current_user: dict = Depends(auth
         ]
     }
 
-@router.put("/workers/{worker_id}/data")
+@router.put("/api/workers/{worker_id}/data")
 def update_worker_data(
     worker_id: int, 
     worker_data: schemas.WorkerUpdate, 
@@ -47,7 +47,7 @@ def update_worker_data(
     db.refresh(worker)
     return {"message": "Worker data updated successfully"}
 
-@router.put("/workers/{worker_id}/disponibility")
+@router.put("/api/workers/{worker_id}/disponibility")
 def update_worker_disponibility(
     worker_id: int, 
     worker_data: schemas.WorkerDisponibilityUpdate,
@@ -65,7 +65,7 @@ def update_worker_disponibility(
     db.refresh(worker)
     return {"message": "Worker disponibility updated successfully"}
 
-@router.delete("/workers/{worker_id}")
+@router.delete("/api/workers/{worker_id}")
 def delete_worker(worker_id: int, db: Session = Depends(get_db), current_user: dict = Depends(auth.require_role("admin"))):
     worker = db.query(user.User).filter(user.User.id == worker_id, user.User.role == "worker").first()
     if not worker:

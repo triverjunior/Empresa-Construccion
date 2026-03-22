@@ -6,7 +6,7 @@ from .. import auth
 
 router = APIRouter()
 
-@router.get("/reports")
+@router.get("/api/reports")
 def get_reports(db: Session = Depends(get_db), current_user: dict = Depends(auth.require_role("admin"))):
     reports = db.query(report.Report).all()
     return {

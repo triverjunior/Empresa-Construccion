@@ -49,7 +49,7 @@ def require_role(required_role: str):
     
     return role_checker
 
-@router.post("/register")
+@router.post("/api/register")
 def register_user(user_reg: schemas.UserCreate, db: Session = Depends(get_db), current_user: dict = Depends(require_role("admin"))):
     existing_user = db.query(user.User).filter(user.User.email == user_reg.email).first()
     
@@ -76,7 +76,7 @@ def register_user(user_reg: schemas.UserCreate, db: Session = Depends(get_db), c
         "role": new_user.role
     }
 
-@router.post("/login")
+@router.post("/api/login")
 def login (form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user_sel = db.query(user.User).filter(user.User.username == form_data.username).first()
     
