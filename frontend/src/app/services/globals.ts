@@ -6,7 +6,7 @@ import { Observable } from 'rxjs';
     providedIn: 'root',
 })
 export class Globals {
-    public apiUrl: string = 'http://localhost:8000/api';
+    public apiUrl: string = 'https://empresa-construccion-production.up.railway.app/api';
     private http = inject(HttpClient);
 
     public login(username: string, password: string): Observable<any> {
