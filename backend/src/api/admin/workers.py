@@ -1,11 +1,13 @@
 from fastapi import FastAPI, APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+import logging
 from ...db.models import user, schemas
 from ...db.database import get_db
 from .. import auth
 from ...emails.sender import send_email
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 @router.get("/api/workers")
 def get_workers(db: Session = Depends(get_db), current_user: dict = Depends(auth.require_role("admin"))):
@@ -70,7 +72,7 @@ def update_worker_disponibility(
         body=f"Hi {worker.username}, your disponibility has been updated, you have a new project assigned."
     )
     if email_status != 'success':
-        print(f"Worker availability updated but email failed for worker_id={worker.id}: {email_status}")
+        logger.warning("Worker availability updated but email failed for worker_id=%s: %s", worker.id, email_status)
     return {
         "message": "Worker disponibility updated successfully",
         "email_status": email_status or "not_sent"

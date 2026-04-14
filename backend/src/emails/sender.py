@@ -2,6 +2,9 @@ import os
 import smtplib
 import socket
 import logging
+import json
+import urllib.request
+import urllib.error
 from email.mime.text import MIMEText
 from dotenv import load_dotenv
 
@@ -31,6 +34,50 @@ def _build_smtp_candidates(smtp_port: int, smtp_use_ssl: bool, smtp_use_tls: boo
         if candidate not in unique_candidates:
             unique_candidates.append(candidate)
     return unique_candidates
+
+
+def _send_with_resend(to_email: str, subject: str, body: str) -> str:
+    api_key = os.getenv('RESEND_API_KEY', '').strip()
+    email_from = os.getenv('EMAIL_FROM', '').strip()
+
+    if not api_key or not email_from:
+        logger.warning("Resend fallback is not configured. RESEND_API_KEY set=%s, EMAIL_FROM set=%s", bool(api_key), bool(email_from))
+        return 'not_sent:resend_not_configured'
+
+    payload = {
+        "from": email_from,
+        "to": [to_email],
+        "subject": subject,
+        "text": body,
+    }
+
+    req = urllib.request.Request(
+        url="https://api.resend.com/emails",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=float(os.getenv('EMAIL_HTTP_TIMEOUT', '15'))) as response:
+            if 200 <= response.status < 300:
+                logger.info("Email sent successfully through Resend API")
+                return 'success'
+
+            logger.warning("Resend API returned unexpected status: %s", response.status)
+            return 'not_sent:resend_unexpected_status'
+    except urllib.error.HTTPError as exc:
+        logger.warning("Resend API HTTP error: %s", exc)
+        return 'not_sent:resend_http_error'
+    except urllib.error.URLError as exc:
+        logger.warning("Resend API network error: %s", exc)
+        return 'not_sent:resend_network_error'
+    except Exception as exc:
+        logger.warning("Resend API unknown error: %s", exc)
+        return 'not_sent:resend_unknown_error'
 
 
 def send_email(to_email, subject, body):
@@ -104,5 +151,12 @@ def send_email(to_email, subject, body):
 
     if errors:
         logger.warning("Failed to send email after %s SMTP attempt(s): %s", len(errors), " | ".join(errors))
+
+    if _env_bool('EMAIL_USE_RESEND_FALLBACK', default=True):
+        resend_status = _send_with_resend(to_email, subject, body)
+        if resend_status == 'success':
+            return 'success'
+
+        logger.warning("SMTP unreachable and Resend fallback failed: %s", resend_status)
 
     return 'not_sent:network_or_smtp_unreachable'

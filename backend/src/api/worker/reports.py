@@ -1,6 +1,7 @@
 from fastapi import FastAPI, APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
+import logging
 from ...db.models import schemas, report, project
 from ...db.database import get_db
 from .. import auth
@@ -8,6 +9,7 @@ from ...emails.sender import send_email
 import os
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 @router.post("/api/reports")
 def create_report(
@@ -41,7 +43,7 @@ def create_report(
     )
 
     if email_status != 'success':
-        print(f"Report created but email notification failed: {email_status}")
+        logger.warning("Report created but email notification failed: %s", email_status)
 
     return {
         "message": "Report created successfully",
