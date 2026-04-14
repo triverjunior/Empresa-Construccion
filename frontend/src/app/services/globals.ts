@@ -9,6 +9,30 @@ export class Globals {
     public apiUrl: string = 'https://empresa-construccion-production.up.railway.app/api';
     private http = inject(HttpClient);
 
+    private getDecodedPayload(token: string): { exp?: number } | null {
+        try {
+            return JSON.parse(atob(token.split('.')[1]));
+        } catch {
+            return null;
+        }
+    }
+
+    private isTokenValid(token: string | null): boolean {
+        if (!token) return false;
+
+        const payload = this.getDecodedPayload(token);
+        if (!payload) return false;
+
+        if (typeof payload.exp === 'number') {
+            const nowInSeconds = Math.floor(Date.now() / 1000);
+            if (payload.exp <= nowInSeconds) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public login(username: string, password: string): Observable<any> {
         const body = new URLSearchParams();
         body.set('username', username);
@@ -21,6 +45,12 @@ export class Globals {
 
     private getAuthHeaders(): HttpHeaders {
         const token = localStorage.getItem('token');
+
+        if (!this.isTokenValid(token)) {
+            localStorage.removeItem('token');
+            return new HttpHeaders();
+        }
+
         return new HttpHeaders().set('Authorization', `Bearer ${token}`);
     }
 

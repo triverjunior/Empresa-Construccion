@@ -6,14 +6,26 @@ export const authGuard: CanActivateFn = (route, state) => {
     const token = localStorage.getItem('token');
 
     let role: string | null = null;
+    let isTokenExpired = false;
 
     if (token) {
         try {
             const payload = JSON.parse(atob(token.split('.')[1]));
+            if (typeof payload.exp === 'number') {
+                const nowInSeconds = Math.floor(Date.now() / 1000);
+                if (payload.exp <= nowInSeconds) {
+                    isTokenExpired = true;
+                }
+            }
             role = payload.role;
         } catch (e) {
             localStorage.removeItem('token');
         }
+    }
+
+    if (isTokenExpired) {
+        localStorage.removeItem('token');
+        role = null;
     }
 
     const url = state.url.split('?')[0];
