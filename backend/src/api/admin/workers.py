@@ -64,12 +64,17 @@ def update_worker_disponibility(
     
     db.commit()
     db.refresh(worker)
-    send_email(
+    email_status = send_email(
         to_email=worker.email,
         subject="Disponibility Updated",
         body=f"Hi {worker.username}, your disponibility has been updated, you have a new project assigned."
     )
-    return {"message": "Worker disponibility updated successfully"}
+    if email_status != 'success':
+        print(f"Worker availability updated but email failed for worker_id={worker.id}: {email_status}")
+    return {
+        "message": "Worker disponibility updated successfully",
+        "email_status": email_status or "not_sent"
+    }
 
 @router.delete("/api/workers/{worker_id}")
 def delete_worker(worker_id: int, db: Session = Depends(get_db), current_user: dict = Depends(auth.require_role("admin"))):

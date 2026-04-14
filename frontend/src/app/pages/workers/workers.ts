@@ -103,7 +103,7 @@ export class Workers implements OnInit {
     unassign(worker: Worker): void {
         this.globals.unassignWorker(worker.id).subscribe({
             next: () => {
-                window.location.reload();
+                this.loadWorkers();
             },
             error: () => {}
         });

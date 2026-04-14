@@ -34,10 +34,17 @@ def create_report(
     db.commit()
     db.refresh(new_report)
 
-    send_email(
+    email_status = send_email(
         to_email=admin_email,
         subject=f"New Report: {report_data.title}",
         body=f"A new report has been created for project '{project_exists.title}'.\nDescription: {report_data.description}"
     )
 
-    return {"message": "Report created successfully", "report_id": new_report.id}
+    if email_status != 'success':
+        print(f"Report created but email notification failed: {email_status}")
+
+    return {
+        "message": "Report created successfully",
+        "report_id": new_report.id,
+        "email_status": email_status or "not_sent"
+    }

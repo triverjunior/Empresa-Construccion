@@ -191,7 +191,11 @@ export class Projects implements OnInit {
         if (!this.selectedWorkerId || !this.assigningProjectId()) return;
         this.globals.assignWorkerToProject(this.selectedWorkerId, this.assigningProjectId()!).subscribe({
             next: () => {
-                window.location.reload();
+                this.assigningProjectId.set(null);
+                this.selectedWorkerId = null;
+                this.assignError = '';
+                this.loadProjects();
+                this.loadWorkers();
             },
             error: () => this.assignError = 'Error assigning worker.'
         });
