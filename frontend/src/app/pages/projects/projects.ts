@@ -193,6 +193,7 @@ export class Projects implements OnInit {
             next: () => {
                 this.assigningProjectId.set(null);
                 this.loadWorkers();
+                this.loadProjects();
             },
             error: () => this.assignError = 'Error assigning worker.'
         });
