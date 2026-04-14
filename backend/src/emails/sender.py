@@ -2,11 +2,10 @@ import os
 import smtplib
 import socket
 import logging
-import json
-import urllib.request
-import urllib.error
+import re
 from email.mime.text import MIMEText
 from dotenv import load_dotenv
+import resend
 
 load_dotenv(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '.env')))
 
@@ -39,73 +38,51 @@ def _build_smtp_candidates(smtp_port: int, smtp_use_ssl: bool, smtp_use_tls: boo
 def _send_with_resend(to_email: str, subject: str, body: str) -> str:
     api_key = os.getenv('RESEND_API_KEY', '').strip()
     email_from = os.getenv('EMAIL_FROM', '').strip()
-    onboarding_sender = os.getenv('RESEND_ONBOARDING_FROM', 'onboarding@resend.dev').strip()
 
     if not api_key or not email_from:
         logger.warning("Resend is not configured. RESEND_API_KEY set=%s, EMAIL_FROM set=%s", bool(api_key), bool(email_from))
         return 'not_sent:resend_not_configured'
 
-    def _resend_request(sender_email: str) -> str:
-        payload = {
-            "from": sender_email,
-            "to": [to_email],
-            "subject": subject,
-            "text": body,
-        }
+    resend.api_key = api_key
 
-        req = urllib.request.Request(
-            url="https://api.resend.com/emails",
-            data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-            method="POST",
+    payload = {
+        "from": email_from,
+        "to": [to_email],
+        "subject": subject,
+        "text": body,
+    }
+
+    try:
+        response = resend.Emails.send(payload)
+        response_id = response.get("id") if isinstance(response, dict) else None
+        logger.info("Email sent successfully through Resend SDK (id=%s)", response_id)
+        return 'success'
+    except Exception as exc:
+        raw_error = str(exc)
+        status_match = re.search(r"\b(?:status|status_code)\s*[:=]\s*(\d{3})\b", raw_error, flags=re.IGNORECASE)
+        code_match = re.search(r"\berror\s*code\s*[:=]\s*(\d+)\b", raw_error, flags=re.IGNORECASE)
+        status_code = int(status_match.group(1)) if status_match else None
+        error_code = code_match.group(1) if code_match else None
+
+        logger.warning(
+            "Resend SDK error: status=%s error_code=%s details=%s",
+            status_code,
+            error_code,
+            raw_error,
         )
 
-        try:
-            with urllib.request.urlopen(req, timeout=float(os.getenv('EMAIL_HTTP_TIMEOUT', '15'))) as response:
-                if 200 <= response.status < 300:
-                    logger.info("Email sent successfully through Resend API (from=%s)", sender_email)
-                    return 'success'
-
-                logger.warning("Resend API returned unexpected status: %s", response.status)
-                return 'not_sent:resend_unexpected_status'
-        except urllib.error.HTTPError as exc:
-            response_body = ''
-            try:
-                response_body = exc.read().decode('utf-8', errors='replace')
-            except Exception:
-                response_body = ''
-
-            logger.warning("Resend API HTTP error: status=%s body=%s", exc.code, response_body or '<empty>')
-            if exc.code == 401:
-                return 'not_sent:resend_unauthorized'
-            if exc.code == 403:
-                return 'not_sent:resend_forbidden'
-            if exc.code == 422:
-                return 'not_sent:resend_unprocessable'
-            return 'not_sent:resend_http_error'
-        except urllib.error.URLError as exc:
-            logger.warning("Resend API network error: %s", exc)
-            return 'not_sent:resend_network_error'
-        except Exception as exc:
-            logger.warning("Resend API unknown error: %s", exc)
-            return 'not_sent:resend_unknown_error'
-
-    primary_status = _resend_request(email_from)
-    if primary_status == 'success':
-        return 'success'
-
-    allow_onboarding_fallback = _env_bool('RESEND_ALLOW_ONBOARDING_FALLBACK', default=True)
-    if primary_status == 'not_sent:resend_forbidden' and allow_onboarding_fallback and onboarding_sender and onboarding_sender != email_from:
-        logger.warning("Resend forbidden with EMAIL_FROM=%s, retrying with onboarding sender", email_from)
-        sandbox_status = _resend_request(onboarding_sender)
-        if sandbox_status == 'success':
-            return 'success'
-        return sandbox_status
-
-    return primary_status
+        if status_code == 401:
+            return 'not_sent:resend_unauthorized'
+        if status_code == 422:
+            return 'not_sent:resend_unprocessable'
+        if status_code == 403 and error_code == '1010':
+            logger.warning(
+                "Resend rejected the sender or recipient (403/1010). Check EMAIL_FROM domain verification and recipient restrictions in Resend."
+            )
+            return 'not_sent:resend_forbidden_1010'
+        if status_code == 403:
+            return 'not_sent:resend_forbidden'
+        return 'not_sent:resend_unknown_error'
 
 
 def send_email(to_email, subject, body):
@@ -123,7 +100,7 @@ def send_email(to_email, subject, body):
 
     logger.warning("Primary Resend send failed: %s", resend_status)
 
-    if not _env_bool('EMAIL_USE_SMTP_FALLBACK', default=True):
+    if not _env_bool('EMAIL_USE_SMTP_FALLBACK', default=False):
         return resend_status
 
     smtp_server = os.getenv('SMTP_SERVER', '').strip()
