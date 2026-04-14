@@ -41,7 +41,7 @@ def _send_with_resend(to_email: str, subject: str, body: str) -> str:
     email_from = os.getenv('EMAIL_FROM', '').strip()
 
     if not api_key or not email_from:
-        logger.warning("Resend fallback is not configured. RESEND_API_KEY set=%s, EMAIL_FROM set=%s", bool(api_key), bool(email_from))
+        logger.warning("Resend is not configured. RESEND_API_KEY set=%s, EMAIL_FROM set=%s", bool(api_key), bool(email_from))
         return 'not_sent:resend_not_configured'
 
     payload = {
@@ -89,6 +89,15 @@ def send_email(to_email, subject, body):
         logger.info("Email notifications disabled by EMAIL_NOTIFICATIONS_ENABLED")
         return 'not_sent:disabled'
 
+    resend_status = _send_with_resend(to_email, subject, body)
+    if resend_status == 'success':
+        return 'success'
+
+    logger.warning("Primary Resend send failed: %s", resend_status)
+
+    if not _env_bool('EMAIL_USE_SMTP_FALLBACK', default=True):
+        return resend_status
+
     smtp_server = os.getenv('SMTP_SERVER', '').strip()
     smtp_port_raw = os.getenv('SMTP_PORT', '').strip()
     smtp_user = os.getenv('SMTP_USER', '').strip()
@@ -105,17 +114,17 @@ def send_email(to_email, subject, body):
             bool(smtp_user),
             bool(smtp_password),
         )
-        return 'not_sent:invalid_smtp_config'
+        return resend_status
 
     try:
         smtp_port = int(smtp_port_raw)
     except ValueError:
         logger.warning("Invalid SMTP_PORT value: %s", smtp_port_raw)
-        return 'not_sent:invalid_smtp_port'
+        return resend_status
     
     msg = MIMEText(body)
     msg['Subject'] = subject
-    msg['From'] = smtp_user
+    msg['From'] = os.getenv('EMAIL_FROM', '').strip() or smtp_user
     msg['To'] = to_email
 
     errors = []
@@ -150,13 +159,6 @@ def send_email(to_email, subject, body):
             continue
 
     if errors:
-        logger.warning("Failed to send email after %s SMTP attempt(s): %s", len(errors), " | ".join(errors))
+        logger.warning("Resend failed and SMTP fallback also failed after %s attempt(s): %s", len(errors), " | ".join(errors))
 
-    if _env_bool('EMAIL_USE_RESEND_FALLBACK', default=True):
-        resend_status = _send_with_resend(to_email, subject, body)
-        if resend_status == 'success':
-            return 'success'
-
-        logger.warning("SMTP unreachable and Resend fallback failed: %s", resend_status)
-
-    return 'not_sent:network_or_smtp_unreachable'
+    return resend_status
